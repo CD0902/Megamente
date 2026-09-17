@@ -1,0 +1,1990 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MEGAMENTE - Entrenamiento Cognitivo Interactivo</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Phaser 3 Game Engine -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #03050d;
+            font-family: 'Rajdhani', sans-serif;
+            color: #f4f7ff;
+        }
+
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        #game-wrapper {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+            margin: auto;
+            box-shadow: 0 0 50px rgba(6, 182, 212, 0.2);
+            border-radius: 14px;
+        }
+
+        #playerInput {
+            position: fixed;
+            left: 50%;
+            top: 48%;
+            transform: translate(-50%, -50%);
+            width: min(420px, 85vw);
+            padding: 16px 20px;
+            border: 2px solid rgba(6, 182, 212, 0.7);
+            border-radius: 14px;
+            background: rgba(8, 13, 30, 0.96);
+            color: #f8fafc;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px;
+            text-align: center;
+            outline: none;
+            z-index: 100;
+            box-shadow: 0 0 35px rgba(6, 182, 212, 0.35);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        #playerInput:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 45px rgba(56, 189, 248, 0.6);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- =========================================================
+     PANTALLA DE CARGA
+========================================================= -->
+<section id="loading" class="screen active">
+    <div class="loading-card">
+        <div class="loading-logo">🤖👾</div>
+        <div class="loading-kicker">SISTEMA NEURO</div>
+        <h1>MEGAMENTE</h1>
+        <p>Preparando tu entrenamiento cognitivo...</p>
+
+        <div class="progress">
+            <div id="bar" class="bar"></div>
+        </div>
+
+        <div class="loading-info">
+            <span id="percent">0%</span>
+            <span id="loadingStatus">Cargando recursos...</span>
+        </div>
+
+        <button id="enterGame" class="enter-game" type="button" disabled>
+            ESPERA...
+        </button>
+
+        <div class="loading-tip">
+            🎧 La música se reproducirá al entrar al juego
+        </div>
+    </div>
+</section>
+
+<!-- Música de fondo: coloca musica.mpeg junto a este HTML -->
+<audio id="bgMusic" loop preload="auto">
+    <source src="ept.mpeg" type="audio/mpeg">
+</audio>
+
+<style>
+    #loading {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        background:
+            radial-gradient(circle at 50% 35%, rgba(6,182,212,.12), transparent 35%),
+            radial-gradient(circle at 20% 80%, rgba(99,102,241,.10), transparent 30%),
+            #03050d;
+        opacity: 1;
+        visibility: visible;
+        transition: opacity .55s ease, visibility .55s ease;
+    }
+
+    #loading.hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    .loading-card {
+        width: min(620px, 94vw);
+        padding: 42px 34px 30px;
+        text-align: center;
+        border: 1px solid rgba(6,182,212,.35);
+        border-radius: 24px;
+        background: rgba(8,13,30,.88);
+        box-shadow:
+            0 0 35px rgba(6,182,212,.16),
+            inset 0 0 30px rgba(6,182,212,.035);
+        backdrop-filter: blur(12px);
+    }
+
+    .loading-logo {
+        font-size: clamp(52px, 8vw, 76px);
+        line-height: 1;
+        margin-bottom: 18px;
+        filter: drop-shadow(0 0 18px rgba(56,189,248,.45));
+        animation: loadingFloat 2s ease-in-out infinite;
+    }
+
+    .loading-kicker {
+        font-family: 'Orbitron', sans-serif;
+        color: #38bdf8;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 4px;
+        margin-bottom: 8px;
+    }
+
+    .loading-card h1 {
+        margin: 0;
+        font-family: 'Orbitron', sans-serif;
+        font-size: clamp(34px, 7vw, 58px);
+        font-weight: 900;
+        color: #f8fafc;
+        letter-spacing: 2px;
+        text-shadow: 0 0 22px rgba(6,182,212,.35);
+    }
+
+    .loading-card p {
+        margin: 12px 0 0;
+        color: #94a3b8;
+        font-size: 17px;
+    }
+
+    .progress {
+        height: 22px;
+        margin: 30px 0 12px;
+        background: #111827;
+        border: 1px solid rgba(148,163,184,.15);
+        border-radius: 999px;
+        overflow: hidden;
+        box-shadow: inset 0 0 10px rgba(0,0,0,.45);
+    }
+
+    .bar {
+        height: 100%;
+        width: 0%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #22c55e, #06b6d4, #6366f1);
+        box-shadow: 0 0 18px rgba(6,182,212,.45);
+        transition: width .12s linear;
+    }
+
+    .loading-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+        color: #64748b;
+        font-size: 14px;
+    }
+
+    #percent {
+        font-family: 'Orbitron', sans-serif;
+        color: #38bdf8;
+        font-size: 24px;
+        font-weight: 900;
+    }
+
+    #loadingStatus {
+        text-align: right;
+    }
+
+    .enter-game {
+        width: min(360px, 100%);
+        margin-top: 28px;
+        padding: 14px 22px;
+        border: 1px solid rgba(56,189,248,.55);
+        border-radius: 14px;
+        background: linear-gradient(135deg, #0f172a, #111827);
+        color: #38bdf8;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 17px;
+        font-weight: 900;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+
+    .enter-game:not(:disabled):hover {
+        transform: translateY(-2px) scale(1.02);
+        background: linear-gradient(135deg, #164e63, #172554);
+        box-shadow: 0 0 25px rgba(6,182,212,.25);
+    }
+
+    .enter-game:not(:disabled):active {
+        transform: scale(.98);
+    }
+
+    .enter-game:disabled {
+        opacity: .55;
+        cursor: not-allowed;
+    }
+
+    .loading-tip {
+        margin-top: 18px;
+        color: #475569;
+        font-size: 13px;
+    }
+
+    @keyframes loadingFloat {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-7px) scale(1.025); }
+    }
+
+    @media (max-width: 520px) {
+        .loading-card {
+            padding: 30px 20px 24px;
+        }
+
+        .loading-info {
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        #loadingStatus {
+            text-align: center;
+        }
+    }
+</style>
+
+<script>
+(() => {
+    const loadingScreen = document.getElementById("loading");
+    const bar = document.getElementById("bar");
+    const percent = document.getElementById("percent");
+    const status = document.getElementById("loadingStatus");
+    const enterButton = document.getElementById("enterGame");
+    const bgMusic = document.getElementById("bgMusic");
+
+    let progress = 0;
+    let ready = false;
+    let entered = false;
+
+    const messages = [
+        "Cargando recursos...",
+        "Preparando módulos...",
+        "Sincronizando entrenamiento...",
+        "Casi listo..."
+    ];
+
+    const loading = setInterval(() => {
+        progress = Math.min(100, progress + 2);
+
+        bar.style.width = progress + "%";
+        percent.textContent = progress + "%";
+
+        const index = Math.min(
+            messages.length - 1,
+            Math.floor(progress / 25)
+        );
+        status.textContent = messages[index];
+
+        if (progress >= 100) {
+            clearInterval(loading);
+            ready = true;
+            status.textContent = "Sistema listo.";
+            enterButton.disabled = false;
+            enterButton.textContent = "🚀 ENTRAR AL JUEGO";
+        }
+    }, 45);
+
+    async function startMusic() {
+        if (!bgMusic) return;
+
+        bgMusic.volume = 0.45;
+
+        try {
+            await bgMusic.play();
+        } catch (error) {
+            console.warn("La música espera una interacción del usuario:", error);
+        }
+    }
+
+    function enterGame() {
+        if (!ready || entered) return;
+
+        entered = true;
+
+        // La pulsación permite que Chrome reproduzca audio con sonido.
+        startMusic();
+
+        enterButton.textContent = "CARGANDO...";
+        enterButton.disabled = true;
+
+        loadingScreen.classList.add("hidden");
+    }
+
+    enterButton.addEventListener("click", enterGame);
+
+    // También permite entrar tocando la pantalla cuando ya terminó.
+    loadingScreen.addEventListener("pointerdown", (event) => {
+        if (event.target === enterButton) return;
+        if (ready) enterGame();
+    });
+
+    // Si se vuelve a la pestaña y el navegador pausó el audio, lo reanuda.
+    document.addEventListener("visibilitychange", () => {
+        if (!document.hidden && entered && bgMusic.paused) {
+            startMusic();
+        }
+    });
+
+    bgMusic.addEventListener("error", () => {
+        status.textContent = "Juego listo. Revisa musica.mpeg";
+        console.warn("No se encontró musica.mpeg junto al HTML.");
+    });
+})();
+</script>
+
+<div id="game-wrapper">
+        <div id="game"></div>
+    </div>
+
+    <script>
+        class WebSoundSynth {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) this.ctx = new AudioContext();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playPop(freq = 520, duration = 0.06) {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(freq * 0.5, this.ctx.currentTime + duration);
+
+                gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            }
+
+            playSuccess() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'triangle';
+                    osc.frequency.value = freq;
+
+                    gain.gain.setValueAtTime(0.1, now + idx * 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.2);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now + idx * 0.05);
+                    osc.stop(now + idx * 0.05 + 0.2);
+                });
+            }
+
+            playError() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(190, now);
+                osc.frequency.setValueAtTime(110, now + 0.12);
+
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+
+            playTone(freq, duration = 0.3) {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + duration);
+            }
+
+            playRuleSwitch() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.25);
+
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+        }
+
+        const soundFX = new WebSoundSynth();
+
+        const GAME_WIDTH = 1100;
+        const GAME_HEIGHT = 700;
+
+
+        // BOTÓN FIJO PARA SALIR AL MENÚ DESDE CUALQUIER JUEGO
+        function addExitToMenuButton(scene) {
+            const btn = scene.add.text(28, 18, "⟵ SALIR AL MENÚ", {
+                fontFamily: "Orbitron",
+                fontSize: "14px",
+                color: "#ffffff",
+                backgroundColor: "#0f172a",
+                padding: { left: 12, right: 12, top: 8, bottom: 8 }
+            }).setOrigin(0, 0).setDepth(1000).setScrollFactor(0).setInteractive({ useHandCursor: true });
+
+            btn.on("pointerover", () => btn.setAlpha(0.8));
+            btn.on("pointerout", () => btn.setAlpha(1));
+            btn.on("pointerdown", () => {
+                if (typeof soundFX !== "undefined" && soundFX.pop) soundFX.pop();
+                scene.scene.start("MainScene");
+            });
+
+            return btn;
+        }
+
+        const PLAYER_KEY = "MEGAMENTE_PLAYER";
+        const SCORES_KEY = "MEGAMENTE_SCORES";
+
+        let playerName = localStorage.getItem(PLAYER_KEY) || "";
+
+        let scores = JSON.parse(
+            localStorage.getItem(SCORES_KEY) || "null"
+        ) || {
+            total: 0,
+            cazador: 0,
+            notocar: 0,
+            memoria: 0,
+            cambio: 0,
+            caos: 0,
+            mega: 0
+        };
+
+        function saveData() {
+            scores.total =
+                scores.cazador +
+                scores.notocar +
+                scores.memoria +
+                scores.cambio +
+                scores.caos +
+                scores.mega;
+
+            localStorage.setItem(PLAYER_KEY, playerName);
+            localStorage.setItem(SCORES_KEY, JSON.stringify(scores));
+        }
+
+        function getPlayerRank() {
+            const total = scores.total;
+            if (total >= 10000) return "🧠 SUPREMO NEURO-MASTER";
+            if (total >= 5000) return "⚡ MAESTRO DEL ENFOQUE";
+            if (total >= 2500) return "🎯 GUERRERO DE ATENCIÓN";
+            if (total >= 1000) return "🚀 EXPLORADOR COGNITIVO";
+            return "🌱 APRENDIZ DE FOCO";
+        }
+
+        function createBurstFX(scene, x, y, color = 0x38bdf8) {
+            for (let i = 0; i < 14; i++) {
+                const p = scene.add.circle(x, y, Phaser.Math.Between(3, 7), color, 0.9);
+                const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+                const speed = Phaser.Math.Between(60, 220);
+
+                scene.tweens.add({
+                    targets: p,
+                    x: x + Math.cos(angle) * speed,
+                    y: y + Math.sin(angle) * speed,
+                    alpha: 0,
+                    scale: 0.2,
+                    duration: Phaser.Math.Between(350, 650),
+                    ease: "Power2",
+                    onComplete: () => p.destroy()
+                });
+            }
+        }
+
+        function createFloatingText(scene, x, y, text, color = "#10b981") {
+            const floatTxt = scene.add.text(x, y, text, {
+                fontFamily: "Orbitron",
+                fontSize: "20px",
+                fontStyle: "bold",
+                color: color,
+                stroke: "#000000",
+                strokeThickness: 4
+            }).setOrigin(0.5);
+
+            scene.tweens.add({
+                targets: floatTxt,
+                y: y - 45,
+                alpha: 0,
+                duration: 750,
+                ease: "Cubic.out",
+                onComplete: () => floatTxt.destroy()
+            });
+        }
+
+        class MainScene extends Phaser.Scene {
+            constructor() {
+                super("MainScene");
+            }
+
+            create() {
+                this.screenObjects = [];
+                this.navLock = false;
+
+                this.bg = this.add.container(0, 0);
+                this.ui = this.add.container(0, 0);
+
+                this.createAtmosphere();
+
+                if (playerName) {
+                    this.showMainMenu();
+                } else {
+                    this.showPlayerRegistration();
+                }
+            }
+
+            addUI(object) {
+                this.ui.add(object);
+                this.screenObjects.push(object);
+                return object;
+            }
+
+            clearScreen() {
+                const input = document.getElementById("playerInput");
+                if (input) input.remove();
+
+                this.screenObjects.forEach(object => {
+                    if (object && object.destroy) object.destroy();
+                });
+
+                this.screenObjects = [];
+                this.navLock = false;
+            }
+
+            createAtmosphere() {
+                const background = this.add.graphics();
+                background.fillGradientStyle(0x050713, 0x080d20, 0x03050d, 0x070b18, 1);
+                background.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+                this.bg.add(background);
+
+                const lights = [
+                    { x: 180, y: 130, radius: 240, alpha: 0.08 },
+                    { x: 880, y: 180, radius: 290, alpha: 0.07 },
+                    { x: 550, y: 640, radius: 310, alpha: 0.05 }
+                ];
+
+                lights.forEach((light, index) => {
+                    const circle = this.add.circle(light.x, light.y, light.radius, 0x06b6d4, light.alpha);
+                    this.bg.add(circle);
+
+                    this.tweens.add({
+                        targets: circle,
+                        x: light.x + (index % 2 ? 35 : -25),
+                        y: light.y + (index % 2 ? -25 : 30),
+                        scale: 1.12,
+                        duration: 6500 + index * 900,
+                        yoyo: true,
+                        repeat: -1,
+                        ease: "Sine.easeInOut"
+                    });
+                });
+
+                const grid = this.add.graphics();
+                grid.lineStyle(1, 0x06b6d4, 0.04);
+                for (let x = 0; x <= GAME_WIDTH; x += 50) grid.lineBetween(x, 0, x, GAME_HEIGHT);
+                for (let y = 0; y <= GAME_HEIGHT; y += 50) grid.lineBetween(0, y, GAME_WIDTH, y);
+                this.bg.add(grid);
+
+                for (let i = 0; i < 45; i++) {
+                    const particle = this.add.circle(
+                        Phaser.Math.Between(15, GAME_WIDTH - 15),
+                        Phaser.Math.Between(15, GAME_HEIGHT - 15),
+                        Phaser.Math.Between(1.5, 3),
+                        0x38bdf8,
+                        Phaser.Math.FloatBetween(0.12, 0.38)
+                    );
+                    this.bg.add(particle);
+
+                    this.tweens.add({
+                        targets: particle,
+                        y: particle.y - Phaser.Math.Between(20, 90),
+                        alpha: Phaser.Math.FloatBetween(0.05, 0.35),
+                        duration: Phaser.Math.Between(2500, 6000),
+                        yoyo: true,
+                        repeat: -1,
+                        ease: "Sine.easeInOut"
+                    });
+                }
+            }
+
+            title(text, y = 95, size = 52) {
+                const title = this.addUI(
+                    this.add.text(GAME_WIDTH / 2, y, text, {
+                        fontFamily: "Orbitron, Arial Black",
+                        fontSize: size + "px",
+                        color: "#06b6d4",
+                        fontStyle: "bold",
+                        stroke: "#020617",
+                        strokeThickness: 8
+                    }).setOrigin(0.5)
+                );
+
+                this.tweens.add({
+                    targets: title,
+                    alpha: 0.92,
+                    scale: 1.015,
+                    duration: 1800,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: "Sine.easeInOut"
+                });
+
+                return title;
+            }
+
+            createButton(x, y, text, callback, width = 360) {
+                const box = this.addUI(
+                    this.add.rectangle(x, y, width, 56, 0x0f172a, 0.9)
+                        .setStrokeStyle(2, 0x06b6d4, 0.4)
+                        .setOrigin(0.5)
+                        .setInteractive()
+                );
+                box.input.cursor = 'pointer';
+
+                const label = this.addUI(
+                    this.add.text(x, y, text, {
+                        fontFamily: "Orbitron, Rajdhani",
+                        fontSize: "20px",
+                        color: "#38bdf8",
+                        fontStyle: "bold"
+                    }).setOrigin(0.5)
+                );
+
+                box.on("pointerover", () => {
+                    if (this.navLock) return;
+                    soundFX.playPop(600, 0.04);
+                    box.setFillStyle(0x1e293b, 0.95);
+                    box.setStrokeStyle(2, 0x38bdf8, 0.9);
+                    label.setColor("#ffffff");
+                    this.tweens.add({ targets: [box, label], scale: 1.03, duration: 100 });
+                });
+
+                box.on("pointerout", () => {
+                    box.setFillStyle(0x0f172a, 0.9);
+                    box.setStrokeStyle(2, 0x06b6d4, 0.4);
+                    label.setColor("#38bdf8");
+                    this.tweens.add({ targets: [box, label], scale: 1, duration: 100 });
+                });
+
+                box.on("pointerdown", (pointer, localX, localY, event) => {
+                    if (event) event.stopPropagation();
+                    if (this.navLock) return;
+                    this.navLock = true;
+                    soundFX.playPop(450, 0.05);
+                    callback();
+                });
+
+                return { box, label };
+            }
+
+            showPlayerRegistration() {
+                this.clearScreen();
+
+                this.addUI(
+                    this.add.rectangle(GAME_WIDTH / 2, 350, 580, 420, 0x0f172a, 0.92)
+                        .setStrokeStyle(2, 0x06b6d4, 0.4)
+                );
+
+                this.title("🧠 MEGAMENTE", 105, 54);
+
+                this.addUI(
+                    this.add.text(GAME_WIDTH / 2, 190, "REGISTRO DE AGENTE NEURO", {
+                        fontFamily: "Orbitron",
+                        fontSize: "22px",
+                        fontStyle: "bold",
+                        color: "#38bdf8"
+                    }).setOrigin(0.5)
+                );
+
+                this.addUI(
+                    this.add.text(GAME_WIDTH / 2, 230, "Ingresa tu nombre para iniciar el entrenamiento cognitivo:", {
+                        fontSize: "17px",
+                        color: "#94a3b8"
+                    }).setOrigin(0.5)
+                );
+
+                const input = document.createElement("input");
+                input.id = "playerInput";
+                input.type = "text";
+                input.maxLength = 16;
+                input.placeholder = "Nombre o Apodo...";
+                input.value = playerName;
+                document.body.appendChild(input);
+
+                const button = this.createButton(GAME_WIDTH / 2, 445, "🚀 INICIAR AVENTURA", () => {
+                    const value = input.value.trim();
+                    if (!value) {
+                        input.style.borderColor = "#ef4444";
+                        input.placeholder = "¡Escribe un nombre primero!";
+                        soundFX.playError();
+                        this.navLock = false;
+                        return;
+                    }
+
+                    playerName = value.toUpperCase();
+                    saveData();
+                    soundFX.playSuccess();
+                    input.remove();
+                    this.showMainMenu();
+                }, 320);
+
+                input.addEventListener("keydown", event => {
+                    if (event.key === "Enter") {
+                        button.box.emit("pointerdown");
+                    }
+                });
+
+                this.addUI(
+                    this.add.text(GAME_WIDTH / 2, 535, "Tus avances y récords se guardan automáticamente.", {
+                        fontSize: "15px",
+                        color: "#64748b"
+                    }).setOrigin(0.5)
+                );
+            }
+
+            changePlayer() {
+                if (this.navLock) return;
+                this.navLock = true;
+                const input = document.getElementById("playerInput");
+                if (input) input.remove();
+                localStorage.removeItem(PLAYER_KEY);
+                playerName = "";
+                this.showPlayerRegistration();
+            }
+
+            showMainMenu() {
+                this.clearScreen();
+                this.title("🧠 MEGAMENTE", 95, 58);
+
+                this.addUI(
+                    this.add.text(GAME_WIDTH / 2, 155, "Plataforma de Entrenamiento Cognitivo e Interactivo", {
+                        fontSize: "20px",
+                        color: "#38bdf8"
+                    }).setOrigin(0.5)
+                );
+
+                this.createButton(GAME_WIDTH / 2, 255, "🎮 SELECCIONAR JUEGOS", () => this.showGameSelection());
+                this.createButton(GAME_WIDTH / 2, 330, "👤 MI PERFIL", () => this.showProfile());
+                this.createButton(GAME_WIDTH / 2, 405, "📖 GUÍA Y CÓMO JUGAR", () => this.showInstructions());
+
+                const change = this.addUI(
+                    this.add.text(GAME_WIDTH / 2, 500, "↻ Cambiar de Jugador", {
+                        fontFamily: "Orbitron",
+                        fontSize: "16px",
+                        color: "#ec4899",
+                        backgroundColor: "#0f172a",
+                        padding: { left: 18, right: 18, top: 8, bottom: 8 }
+                    }).setOrigin(0.5).setInteractive()
+                );
+                change.input.cursor = 'pointer';
+
+                change.on("pointerdown", () => this.changePlayer());
+
+                this.addUI(
+                    this.add.text(GAME_WIDTH / 2, 605, `AGENTE: ${playerName} | RANGO: ${getPlayerRank()}`, {
+                        fontFamily: "Orbitron",
+                        fontSize: "15px",
+                        color: "#94a3b8"
+                    }).setOrigin(0.5)
+                );
+            }
+
+            showGameSelection() {
+                this.clearScreen();
+                this.title("MÓDULOS DE JUEGOS", 75, 42);
+
+                this.addUI(
+                    this.add.text(GAME_WIDTH / 2, 125, "Selecciona una habilidad cognitiva para ejercitar", {
+                        fontSize: "17px",
+                        color: "#94a3b8"
+                    }).setOrigin(0.5)
+                );
+
+                const games = [
+                    ["🎯", "CAZADOR", "Atención Selectiva", "cazador", true, 0x10b981],
+                    ["⚡", "NO TOQUES", "Control Inhibitorio", "notocar", true, 0xef4444],
+                    ["🧠", "MEMORIA FLASH", "Memoria de Trabajo", "memoria", true, 0x3b82f6],
+                    ["🔄", "CAMBIO DE REGLA", "Flexibilidad Mental", "cambio", true, 0xf59e0b],
+                    ["🌪️", "MODO CAOS", "Atención Multi-Tarea", "caos", true, 0x8b5cf6],
+                    ["💥", "MEGA DESAFÍO", "Evaluación Integral", "mega", this.allGamesCompleted(), 0xec4899]
+                ];
+
+                games.forEach((game, index) => {
+                    const col = index % 3;
+                    const row = Math.floor(index / 3);
+                    const x = 220 + col * 330;
+                    const y = 215 + row * 185;
+                    const unlocked = game[4];
+
+                    const card = this.addUI(
+                        this.add.rectangle(x, y, 295, 155, unlocked ? 0x0f172a : 0x090d16, 0.92)
+                            .setStrokeStyle(2, unlocked ? game[5] : 0x334155, unlocked ? 0.6 : 0.3)
+                    );
+
+                    if (unlocked) {
+                        card.setInteractive();
+                        card.input.cursor = 'pointer';
+                    }
+
+                    this.addUI(this.add.text(x - 105, y - 40, game[0], { fontSize: "36px" }).setOrigin(0.5));
+
+                    this.addUI(
+                        this.add.text(x + 15, y - 40, game[1], {
+                            fontFamily: "Orbitron",
+                            fontSize: "17px",
+                            fontStyle: "bold",
+                            color: unlocked ? "#f8fafc" : "#64748b"
+                        }).setOrigin(0.5)
+                    );
+
+                    this.addUI(
+                        this.add.text(x, y + 10, game[2], {
+                            fontSize: "14px",
+                            color: unlocked ? "#94a3b8" : "#475569"
+                        }).setOrigin(0.5)
+                    );
+
+                    const scoreVal = scores[game[3]] || 0;
+                    this.addUI(
+                        this.add.text(x, y + 48, unlocked ? (scoreVal ? `🏆 RÉCORD: ${scoreVal}` : "DISPONIBLE") : "🔒 REQUIERE OTROS MÓDULOS", {
+                            fontFamily: "Orbitron",
+                            fontSize: "13px",
+                            fontStyle: "bold",
+                            color: unlocked ? "#38bdf8" : "#475569"
+                        }).setOrigin(0.5)
+                    );
+
+                    if (unlocked) {
+                        card.on("pointerover", () => {
+                            soundFX.playPop(550, 0.03);
+                            this.tweens.add({ targets: card, scale: 1.035, duration: 100 });
+                        });
+                        card.on("pointerout", () => {
+                            this.tweens.add({ targets: card, scale: 1, duration: 100 });
+                        });
+                        card.on("pointerdown", (p, lx, ly, e) => {
+                            if (e) e.stopPropagation();
+                            if (this.navLock) return;
+                            this.navLock = true;
+                            soundFX.playPop(700, 0.05);
+
+                            const sceneMap = {
+                                cazador: "CazadorScene",
+                                notocar: "NoToquesScene",
+                                memoria: "MemoriaScene",
+                                cambio: "CambioScene",
+                                caos: "CaosScene",
+                                mega: "MegaScene"
+                            };
+                            this.scene.start(sceneMap[game[3]]);
+                        });
+                    }
+                });
+
+                const back = this.addUI(
+                    this.add.text(70, 645, "← MENÚ PRINCIPAL", {
+                        fontFamily: "Orbitron",
+                        fontSize: "16px",
+                        color: "#06b6d4"
+                    }).setOrigin(0, 0.5).setInteractive()
+                );
+                back.input.cursor = 'pointer';
+
+                back.on("pointerdown", () => this.showMainMenu());
+            }
+
+            allGamesCompleted() {
+                return (
+                    scores.cazador > 0 &&
+                    scores.notocar > 0 &&
+                    scores.memoria > 0 &&
+                    scores.cambio > 0 &&
+                    scores.caos > 0
+                );
+            }
+
+            showProfile() {
+                this.clearScreen();
+                this.title("EXPEDIENTE NEURO", 85, 45);
+
+                this.addUI(
+                    this.add.rectangle(GAME_WIDTH / 2, 370, 720, 420, 0x0f172a, 0.9)
+                        .setStrokeStyle(2, 0x06b6d4, 0.4)
+                );
+
+                this.addUI(
+                    this.add.text(GAME_WIDTH / 2, 190, `AGENTE: ${playerName}`, {
+                        fontFamily: "Orbitron",
+                        fontSize: "28px",
+                        fontStyle: "bold",
+                        color: "#38bdf8"
+                    }).setOrigin(0.5)
+                );
+
+                this.addUI(
+                    this.add.text(GAME_WIDTH / 2, 230, `RANGO: ${getPlayerRank()}`, {
+                        fontFamily: "Orbitron",
+                        fontSize: "16px",
+                        color: "#10b981"
+                    }).setOrigin(0.5)
+                );
+
+                saveData();
+
+                this.addUI(
+                    this.add.text(GAME_WIDTH / 2, 275, `🏆 PUNTUACIÓN ACUMULADA: ${scores.total.toLocaleString()} PTS`, {
+                        fontFamily: "Orbitron",
+                        fontSize: "22px",
+                        color: "#f59e0b"
+                    }).setOrigin(0.5)
+                );
+
+                const list = [
+                    ["🎯 Cazador de Distracciones", "cazador"],
+                    ["⚡ No Toques (Inhibición)", "notocar"],
+                    ["🧠 Memoria Flash", "memoria"],
+                    ["🔄 Cambio de Regla", "cambio"],
+                    ["🌪️ Modo Caos", "caos"],
+                    ["💥 MEGA Desafío", "mega"]
+                ];
+
+                list.forEach((game, idx) => {
+                    const y = 330 + idx * 32;
+                    this.addUI(this.add.text(280, y, game[0], { fontSize: "16px", color: "#cbd5e1" }).setOrigin(0, 0.5));
+                    this.addUI(
+                        this.add.text(800, y, `${scores[game[1]].toLocaleString()} pts`, {
+                            fontFamily: "Orbitron",
+                            fontSize: "16px",
+                            fontStyle: "bold",
+                            color: "#38bdf8"
+                        }).setOrigin(1, 0.5)
+                    );
+                });
+
+                this.createButton(GAME_WIDTH / 2, 620, "← VOLVER AL MENÚ", () => this.showMainMenu(), 280);
+            }
+
+            showInstructions() {
+                this.clearScreen();
+                this.title("GUÍA PEDAGÓGICA Y TERAPÉUTICA", 80, 40);
+
+                const infoText = [
+                    "• CAZADOR DE DISTRACCIONES: Símbolos móviles y flotantes ejercitan el filtrado atencional dinámico.",
+                    "• NO TOQUES (CONTROL INHIBITORIO): Objetos con temporizadores expiran y trampas señuelo evalúan la capacidad de freno impulsivo.",
+                    "• MEMORIA FLASH: Rejillas interactivas expansivas (de 2x2 a 3x3) estimulan la memoria de trabajo activa.",
+                    "• CAMBIO DE REGLA: Anuncios sorpresa miden la latencia de respuesta ante cambios inesperados.",
+                    "• MODO CAOS: Esferas múltiples (puntos, tiempo extra y minas) estimulan la atención dividida.",
+                    "• MEGA DESAFÍO: Síntesis de múltiples modalidades en una prueba integral por fases."
+                ].join("\n\n");
+
+                this.addUI(
+                    this.add.rectangle(GAME_WIDTH / 2, 350, 780, 390, 0x0f172a, 0.9)
+                        .setStrokeStyle(2, 0x06b6d4, 0.4)
+                );
+
+                this.addUI(
+                    this.add.text(GAME_WIDTH / 2, 350, infoText, {
+                        fontSize: "17px",
+                        color: "#cbd5e1",
+                        align: "left",
+                        wordWrap: { width: 720 },
+                        lineSpacing: 6
+                    }).setOrigin(0.5)
+                );
+
+                this.createButton(GAME_WIDTH / 2, 620, "← VOLVER AL MENÚ", () => this.showMainMenu(), 280);
+            }
+        }
+
+        class CazadorScene extends Phaser.Scene {
+            constructor() { super("CazadorScene"); }
+
+            create() {
+                this.score = 0;
+                this.combo = 0;
+                this.bestCombo = 0;
+                this.correct = 0;
+                this.wrong = 0;
+                this.round = 0;
+                this.timeLeft = 45;
+                this.gameOver = false;
+                this.objects = [];
+                this.targetSymbol = "";
+
+                this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x03050d).setOrigin(0);
+                addExitToMenuButton(this);
+
+                this.add.text(GAME_WIDTH / 2, 35, "🎯 CAZADOR DE DISTRACCIONES (INTERACTIVO)", {
+                    fontFamily: "Orbitron", fontSize: "24px", fontStyle: "bold", color: "#10b981"
+                }).setOrigin(0.5);
+
+                this.scoreText = this.add.text(35, 75, "Puntos: 0", { fontFamily: "Orbitron", fontSize: "20px", color: "#38bdf8" });
+                this.comboText = this.add.text(35, 105, "Combo: x0", { fontFamily: "Rajdhani", fontSize: "18px", color: "#f59e0b" });
+                this.timeText = this.add.text(GAME_WIDTH - 35, 75, "45s", { fontFamily: "Orbitron", fontSize: "20px", color: "#ec4899" }).setOrigin(1, 0);
+
+                this.targetBox = this.add.rectangle(GAME_WIDTH / 2, 130, 240, 50, 0x0f172a, 0.9)
+                    .setStrokeStyle(2, 0x10b981, 0.8);
+                this.targetText = this.add.text(GAME_WIDTH / 2, 130, "BUSCA: ?", {
+                    fontFamily: "Orbitron", fontSize: "26px", fontStyle: "bold", color: "#ffffff"
+                }).setOrigin(0.5);
+
+                this.timer = this.time.addEvent({
+                    delay: 1000,
+                    loop: true,
+                    callback: () => {
+                        if (this.gameOver) return;
+                        this.timeLeft--;
+                        this.timeText.setText(`${this.timeLeft}s`);
+                        if (this.timeLeft <= 0) this.finish();
+                    }
+                });
+
+                this.nextRound();
+            }
+
+            update() {
+                if (this.gameOver) return;
+                this.objects.forEach(obj => {
+                    obj.x += obj.vx;
+                    obj.y += obj.vy;
+
+                    if (obj.x < 60 || obj.x > GAME_WIDTH - 60) obj.vx *= -1;
+                    if (obj.y < 190 || obj.y > GAME_HEIGHT - 60) obj.vy *= -1;
+                });
+            }
+
+            nextRound() {
+                if (this.gameOver) return;
+                this.round++;
+                this.clearObjects();
+
+                const symbols = ["★", "●", "▲", "◆", "■", "✦", "✚", "⬟"];
+                this.targetSymbol = Phaser.Utils.Array.GetRandom(symbols);
+                this.targetText.setText(`BUSCA: ${this.targetSymbol}`);
+
+                const amount = Math.min(26, 12 + Math.floor(this.round / 2));
+                const distractors = symbols.filter(s => s !== this.targetSymbol);
+
+                for (let i = 0; i < amount; i++) {
+                    const isTarget = Math.random() < 0.25;
+                    const symbol = isTarget ? this.targetSymbol : Phaser.Utils.Array.GetRandom(distractors);
+                    const x = Phaser.Math.Between(80, GAME_WIDTH - 80);
+                    const y = Phaser.Math.Between(200, GAME_HEIGHT - 70);
+
+                    const speedMult = 0.6 + Math.min(this.combo * 0.1, 1.2);
+                    const vx = Phaser.Math.FloatBetween(-1.2, 1.2) * speedMult;
+                    const vy = Phaser.Math.FloatBetween(-1.2, 1.2) * speedMult;
+
+                    const obj = this.add.text(x, y, symbol, {
+                        fontSize: Phaser.Math.Between(30, 46) + "px",
+                        fontStyle: "bold",
+                        color: isTarget ? "#ffffff" : "#cbd5e1"
+                    }).setOrigin(0.5).setInteractive();
+                    obj.input.cursor = 'pointer';
+
+                    obj.symbol = symbol;
+                    obj.vx = vx;
+                    obj.vy = vy;
+                    this.objects.push(obj);
+
+                    obj.on("pointerover", () => {
+                        this.tweens.add({ targets: obj, scale: 1.2, duration: 80 });
+                    });
+
+                    obj.on("pointerout", () => {
+                        this.tweens.add({ targets: obj, scale: 1.0, duration: 80 });
+                    });
+
+                    obj.on("pointerdown", () => this.select(obj));
+                }
+            }
+
+            select(obj) {
+                if (obj.symbol === this.targetSymbol) {
+                    soundFX.playSuccess();
+                    this.correct++;
+                    this.combo++;
+                    this.bestCombo = Math.max(this.bestCombo, this.combo);
+                    const pts = 100 + this.combo * 20;
+                    this.score += pts;
+                    this.scoreText.setText(`Puntos: ${this.score}`);
+                    this.comboText.setText(`Combo: x${this.combo}`);
+
+                    createBurstFX(this, obj.x, obj.y, 0x10b981);
+                    createFloatingText(this, obj.x, obj.y, `+${pts} Combo x${this.combo}!`, "#10b981");
+
+                    this.nextRound();
+                } else {
+                    soundFX.playError();
+                    this.wrong++;
+                    this.combo = 0;
+                    this.comboText.setText(`Combo: x0`);
+                    this.score = Math.max(0, this.score - 50);
+                    this.scoreText.setText(`Puntos: ${this.score}`);
+
+                    createBurstFX(this, obj.x, obj.y, 0xef4444);
+                    createFloatingText(this, obj.x, obj.y, `-50!`, "#ef4444");
+                    this.cameras.main.shake(120, 0.007);
+                }
+            }
+
+            clearObjects() {
+                this.objects.forEach(o => o.destroy());
+                this.objects = [];
+            }
+
+            finish() {
+                this.gameOver = true;
+                if (this.timer) this.timer.remove();
+                this.clearObjects();
+
+                const record = this.score > scores.cazador;
+                if (record) scores.cazador = this.score;
+                saveData();
+
+                this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x03050d, 0.92);
+                this.add.text(GAME_WIDTH / 2, 180, record ? "🔥 ¡NUEVO RÉCORD!" : "🎯 FIN DE PARTIDA", {
+                    fontFamily: "Orbitron", fontSize: "38px", color: "#10b981"
+                }).setOrigin(0.5);
+
+                this.add.text(GAME_WIDTH / 2, 270, `Puntos: ${this.score}\nAciertos: ${this.correct} | Errores: ${this.wrong}\nMejor Combo: x${this.bestCombo}`, {
+                    fontFamily: "Rajdhani", fontSize: "22px", color: "#f8fafc", align: "center", lineSpacing: 8
+                }).setOrigin(0.5);
+
+                const btnAgain = this.add.text(GAME_WIDTH / 2, 450, "REINTENTAR", {
+                    fontFamily: "Orbitron", fontSize: "20px", color: "#38bdf8", backgroundColor: "#0f172a", padding: { left: 20, right: 20, top: 10, bottom: 10 }
+                }).setOrigin(0.5).setInteractive();
+                btnAgain.input.cursor = 'pointer';
+
+                const btnMenu = this.add.text(GAME_WIDTH / 2, 530, "VOLVER AL MENÚ", {
+                    fontFamily: "Orbitron", fontSize: "18px", color: "#94a3b8"
+                }).setOrigin(0.5).setInteractive();
+                btnMenu.input.cursor = 'pointer';
+
+                btnAgain.on("pointerdown", () => this.scene.restart());
+                btnMenu.on("pointerdown", () => this.scene.start("MainScene"));
+            }
+        }
+
+        class NoToquesScene extends Phaser.Scene {
+            constructor() { super("NoToquesScene"); }
+
+            create() {
+                this.score = 0;
+                this.timeLeft = 35;
+                this.gameOver = false;
+                this.allowedTarget = "";
+                this.objects = [];
+
+                this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x03050d).setOrigin(0);
+                addExitToMenuButton(this);
+
+                this.add.text(GAME_WIDTH / 2, 35, "⚡ NO TOQUES (CONTROL INHIBITORIO)", {
+                    fontFamily: "Orbitron", fontSize: "24px", color: "#ef4444"
+                }).setOrigin(0.5);
+
+                this.infoBox = this.add.rectangle(GAME_WIDTH / 2, 85, 320, 50, 0x0f172a, 0.9)
+                    .setStrokeStyle(2, 0xef4444, 0.8);
+                this.infoText = this.add.text(GAME_WIDTH / 2, 85, "TOCA SOLO: ?", {
+                    fontFamily: "Orbitron", fontSize: "26px", color: "#38bdf8"
+                }).setOrigin(0.5);
+
+                this.scoreText = this.add.text(35, 40, "Puntos: 0", { fontFamily: "Orbitron", fontSize: "18px", color: "#ffffff" });
+                this.timeText = this.add.text(GAME_WIDTH - 35, 40, "35s", { fontFamily: "Orbitron", fontSize: "18px", color: "#ec4899" }).setOrigin(1, 0);
+
+                this.timer = this.time.addEvent({
+                    delay: 1000,
+                    loop: true,
+                    callback: () => {
+                        if (this.gameOver) return;
+                        this.timeLeft--;
+                        this.timeText.setText(`${this.timeLeft}s`);
+                        if (this.timeLeft <= 0) this.finish();
+                    }
+                });
+
+                this.nextRound();
+            }
+
+            nextRound() {
+                if (this.gameOver) return;
+                this.clearObjects();
+
+                const symbols = ["●", "▲", "■", "★"];
+                this.allowedTarget = Phaser.Utils.Array.GetRandom(symbols);
+                this.infoText.setText(`TOCA SOLO: ${this.allowedTarget}`);
+
+                const count = 12;
+                for (let i = 0; i < count; i++) {
+                    const isTarget = Math.random() < 0.35;
+                    const symbol = isTarget ? this.allowedTarget : Phaser.Utils.Array.GetRandom(symbols.filter(s => s !== this.allowedTarget));
+                    const x = Phaser.Math.Between(110, GAME_WIDTH - 110);
+                    const y = Phaser.Math.Between(170, GAME_HEIGHT - 80);
+
+                    const ring = this.add.graphics();
+                    const obj = this.add.text(x, y, symbol, {
+                        fontSize: "44px", color: "#f8fafc"
+                    }).setOrigin(0.5).setInteractive();
+                    obj.input.cursor = 'pointer';
+
+                    obj.symbol = symbol;
+                    obj.isTarget = isTarget;
+                    obj.ring = ring;
+
+                    let lifespan = 2200;
+                    obj.decayTween = this.tweens.addCounter({
+                        from: 0,
+                        to: 360,
+                        duration: lifespan,
+                        onUpdate: (tween) => {
+                            if (!ring || !ring.active) return;
+                            ring.clear();
+                            ring.lineStyle(3, isTarget ? 0x10b981 : 0xef4444, 0.8);
+                            ring.beginPath();
+                            ring.arc(x, y, 32, Phaser.Math.DegToRad(0), Phaser.Math.DegToRad(tween.getValue()), false);
+                            ring.strokePath();
+                        },
+                        onComplete: () => {
+                            if (obj && obj.active) {
+                                ring.destroy();
+                                obj.destroy();
+                            }
+                        }
+                    });
+
+                    this.objects.push(obj);
+
+                    obj.on("pointerdown", () => {
+                        if (obj.symbol === this.allowedTarget) {
+                            soundFX.playSuccess();
+                            this.score += 100;
+                            this.scoreText.setText(`Puntos: ${this.score}`);
+                            createBurstFX(this, obj.x, obj.y, 0x10b981);
+                            createFloatingText(this, obj.x, obj.y, "+100!", "#10b981");
+                            this.nextRound();
+                        } else {
+                            soundFX.playError();
+                            this.score = Math.max(0, this.score - 90);
+                            this.scoreText.setText(`Puntos: ${this.score}`);
+                            createBurstFX(this, obj.x, obj.y, 0xef4444);
+                            createFloatingText(this, obj.x, obj.y, "-90 ¡TRAMPA!", "#ef4444");
+                            this.cameras.main.shake(120, 0.008);
+                        }
+                    });
+                }
+            }
+
+            clearObjects() {
+                this.objects.forEach(o => {
+                    if (o.ring) o.ring.destroy();
+                    if (o.decayTween) o.decayTween.stop();
+                    o.destroy();
+                });
+                this.objects = [];
+            }
+
+            finish() {
+                this.gameOver = true;
+                if (this.timer) this.timer.remove();
+                this.clearObjects();
+
+                if (this.score > scores.notocar) scores.notocar = this.score;
+                saveData();
+
+                this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x03050d, 0.92);
+                this.add.text(GAME_WIDTH / 2, 200, "⚡ MÓDULO FINALIZADO", { fontFamily: "Orbitron", fontSize: "36px", color: "#ef4444" }).setOrigin(0.5);
+                this.add.text(GAME_WIDTH / 2, 280, `Puntuación Alcanzada: ${this.score} pts`, { fontFamily: "Rajdhani", fontSize: "24px", color: "#ffffff" }).setOrigin(0.5);
+
+                const btnMenu = this.add.text(GAME_WIDTH / 2, 420, "VOLVER AL MENÚ", {
+                    fontFamily: "Orbitron", fontSize: "18px", color: "#38bdf8", backgroundColor: "#0f172a", padding: { left: 20, right: 20, top: 10, bottom: 10 }
+                }).setOrigin(0.5).setInteractive();
+                btnMenu.input.cursor = 'pointer';
+
+                btnMenu.on("pointerdown", () => this.scene.start("MainScene"));
+            }
+        }
+
+        class MemoriaScene extends Phaser.Scene {
+            constructor() { super("MemoriaScene"); }
+
+            create() {
+                this.score = 0;
+                this.sequence = [];
+                this.playerStep = 0;
+                this.isShowing = false;
+                this.pads = [];
+
+                this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x03050d).setOrigin(0);
+                addExitToMenuButton(this);
+
+                this.add.text(GAME_WIDTH / 2, 45, "🧠 MEMORIA FLASH (REJILLA ADAPTATIVA)", {
+                    fontFamily: "Orbitron", fontSize: "24px", color: "#3b82f6"
+                }).setOrigin(0.5);
+
+                this.statusText = this.add.text(GAME_WIDTH / 2, 105, "Observa la secuencia...", {
+                    fontFamily: "Rajdhani", fontSize: "22px", color: "#93c5fd"
+                }).setOrigin(0.5);
+
+                this.scoreText = this.add.text(35, 45, "Puntos: 0", { fontFamily: "Orbitron", fontSize: "18px", color: "#ffffff" });
+
+                this.buildGrid(2); // Start with 2x2
+
+                const exitBtn = this.add.text(GAME_WIDTH / 2, 640, "[ MENÚ PRINCIPAL ]", {
+                    fontFamily: "Orbitron", fontSize: "15px", color: "#64748b"
+                }).setOrigin(0.5).setInteractive();
+                exitBtn.input.cursor = 'pointer';
+
+                exitBtn.on("pointerdown", () => this.finish());
+
+                this.time.delayedCall(1000, () => this.nextRound());
+            }
+
+            buildGrid(gridSize = 2) {
+                this.pads.forEach(p => p.graphics.destroy());
+                this.pads = [];
+
+                this.gridSize = gridSize;
+                const colors = [0x06b6d4, 0xec4899, 0x10b981, 0xf59e0b, 0x8b5cf6, 0x38bdf8, 0xef4444, 0x3b82f6, 0xeab308];
+                const freqs = [330, 392, 440, 523, 587, 659, 698, 783, 880];
+
+                const padSize = gridSize === 2 ? 140 : 105;
+                const gap = 16;
+                const totalWidth = gridSize * padSize + (gridSize - 1) * gap;
+                const startX = (GAME_WIDTH - totalWidth) / 2;
+                const startY = 180;
+
+                for (let r = 0; r < gridSize; r++) {
+                    for (let c = 0; c < gridSize; c++) {
+                        const idx = r * gridSize + c;
+                        const x = startX + c * (padSize + gap);
+                        const y = startY + r * (padSize + gap);
+
+                        const pad = this.add.graphics();
+                        pad.fillStyle(0x0f172a, 0.9);
+                        pad.fillRoundedRect(x, y, padSize, padSize, 14);
+                        pad.lineStyle(3, colors[idx % colors.length], 0.8);
+                        pad.strokeRoundedRect(x, y, padSize, padSize, 14);
+
+                        const hit = new Phaser.Geom.Rectangle(x, y, padSize, padSize);
+                        pad.setInteractive(hit, Phaser.Geom.Rectangle.Contains);
+                        pad.input.cursor = 'pointer';
+
+                        pad.on("pointerdown", () => {
+                            if (this.isShowing) return;
+                            this.handlePadClick(idx);
+                        });
+
+                        this.pads.push({ graphics: pad, color: colors[idx % colors.length], freq: freqs[idx % freqs.length], x, y, padSize });
+                    }
+                }
+            }
+
+            nextRound() {
+                this.playerStep = 0;
+
+                if (this.sequence.length >= 4 && this.gridSize === 2) {
+                    this.buildGrid(3); // Upgrade to 3x3 for enhanced cognitive challenge!
+                }
+
+                const maxIdx = this.gridSize * this.gridSize - 1;
+                this.sequence.push(Phaser.Math.Between(0, maxIdx));
+                this.playSequence();
+            }
+
+            playSequence() {
+                this.isShowing = true;
+                this.statusText.setText("Observa detenidamente la secuencia...");
+
+                let delay = 0;
+                this.sequence.forEach(padIdx => {
+                    this.time.delayedCall(delay, () => this.flashPad(padIdx, 380));
+                    delay += 650;
+                });
+
+                this.time.delayedCall(delay, () => {
+                    this.isShowing = false;
+                    this.statusText.setText("¡Tu turno! Repite la secuencia.");
+                });
+            }
+
+            flashPad(idx, duration) {
+                const pad = this.pads[idx];
+                if (!pad) return;
+                soundFX.playTone(pad.freq, duration / 1000);
+
+                pad.graphics.clear();
+                pad.graphics.fillStyle(pad.color, 1);
+                pad.graphics.fillRoundedRect(pad.x, pad.y, pad.padSize, pad.padSize, 14);
+
+                this.time.delayedCall(duration, () => {
+                    pad.graphics.clear();
+                    pad.graphics.fillStyle(0x0f172a, 0.9);
+                    pad.graphics.fillRoundedRect(pad.x, pad.y, pad.padSize, pad.padSize, 14);
+                    pad.graphics.lineStyle(3, pad.color, 0.8);
+                    pad.graphics.strokeRoundedRect(pad.x, pad.y, pad.padSize, pad.padSize, 14);
+                });
+            }
+
+            handlePadClick(idx) {
+                this.flashPad(idx, 200);
+
+                if (idx === this.sequence[this.playerStep]) {
+                    this.playerStep++;
+                    if (this.playerStep >= this.sequence.length) {
+                        const pts = this.sequence.length * 150;
+                        this.score += pts;
+                        this.scoreText.setText(`Puntos: ${this.score}`);
+                        soundFX.playSuccess();
+
+                        const activePad = this.pads[idx];
+                        createBurstFX(this, activePad.x + activePad.padSize / 2, activePad.y + activePad.padSize / 2, activePad.color);
+                        createFloatingText(this, GAME_WIDTH / 2, 140, `+${pts} ¡SECUENCIA PERFECTA!`, "#10b981");
+
+                        this.statusText.setText("¡Excelente! Secuencia completada.");
+                        this.time.delayedCall(1000, () => this.nextRound());
+                    }
+                } else {
+                    soundFX.playError();
+                    this.statusText.setText("Secuencia incorrecta.");
+                    this.time.delayedCall(1000, () => this.finish());
+                }
+            }
+
+            finish() {
+                if (this.score > scores.memoria) scores.memoria = this.score;
+                saveData();
+
+                this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x03050d, 0.92);
+                this.add.text(GAME_WIDTH / 2, 220, "🧠 MÓDULO FINALIZADO", { fontFamily: "Orbitron", fontSize: "36px", color: "#3b82f6" }).setOrigin(0.5);
+                this.add.text(GAME_WIDTH / 2, 300, `Puntuación Alcanzada: ${this.score} pts`, { fontFamily: "Rajdhani", fontSize: "24px", color: "#ffffff" }).setOrigin(0.5);
+
+                const btnMenu = this.add.text(GAME_WIDTH / 2, 440, "VOLVER AL MENÚ", {
+                    fontFamily: "Orbitron", fontSize: "18px", color: "#38bdf8", backgroundColor: "#0f172a", padding: { left: 20, right: 20, top: 10, bottom: 10 }
+                }).setOrigin(0.5).setInteractive();
+                btnMenu.input.cursor = 'pointer';
+
+                btnMenu.on("pointerdown", () => this.scene.start("MainScene"));
+            }
+        }
+
+        class CambioScene extends Phaser.Scene {
+            constructor() { super("CambioScene"); }
+
+            create() {
+                this.score = 0;
+                this.timeLeft = 40;
+                this.gameOver = false;
+                this.currentRule = "COLOR";
+                this.targetValue = "";
+                this.objects = [];
+                this.consecutiveHits = 0;
+
+                this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x03050d).setOrigin(0);
+                addExitToMenuButton(this);
+
+                this.add.text(GAME_WIDTH / 2, 35, "🔄 CAMBIO DE REGLA (FLEXIBILIDAD)", {
+                    fontFamily: "Orbitron", fontSize: "24px", color: "#f59e0b"
+                }).setOrigin(0.5);
+
+                this.ruleBox = this.add.rectangle(GAME_WIDTH / 2, 90, 680, 50, 0x0f172a, 0.9)
+                    .setStrokeStyle(2, 0xf59e0b, 0.8);
+                this.ruleText = this.add.text(GAME_WIDTH / 2, 90, "REGLA ACTIVA: ?", {
+                    fontFamily: "Orbitron", fontSize: "22px", color: "#ffffff"
+                }).setOrigin(0.5);
+
+                this.scoreText = this.add.text(35, 40, "Puntos: 0", { fontFamily: "Orbitron", fontSize: "18px", color: "#ffffff" });
+                this.timeText = this.add.text(GAME_WIDTH - 35, 40, "40s", { fontFamily: "Orbitron", fontSize: "18px", color: "#ec4899" }).setOrigin(1, 0);
+
+                this.timer = this.time.addEvent({
+                    delay: 1000,
+                    loop: true,
+                    callback: () => {
+                        if (this.gameOver) return;
+                        this.timeLeft--;
+                        this.timeText.setText(`${this.timeLeft}s`);
+                        if (this.timeLeft <= 0) this.finish();
+                    }
+                });
+
+                this.nextRound();
+            }
+
+            triggerRuleSwitchBanner() {
+                soundFX.playRuleSwitch();
+                const banner = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, 120, 0xf59e0b, 0.95);
+                const txt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2, "⚠️ ¡CAMBIO DE REGLA! ⚠️", {
+                    fontFamily: "Orbitron", fontSize: "36px", fontStyle: "bold", color: "#000000"
+                }).setOrigin(0.5);
+
+                this.tweens.add({
+                    targets: [banner, txt],
+                    alpha: 0,
+                    duration: 900,
+                    delay: 400,
+                    onComplete: () => {
+                        banner.destroy();
+                        txt.destroy();
+                    }
+                });
+            }
+
+            nextRound() {
+                if (this.gameOver) return;
+                this.objects.forEach(o => o.destroy());
+                this.objects = [];
+
+                const previousRule = this.currentRule;
+                if (this.consecutiveHits >= 3 || Math.random() < 0.4) {
+                    this.currentRule = this.currentRule === "COLOR" ? "SHAPE" : "COLOR";
+                    this.consecutiveHits = 0;
+                    if (previousRule !== this.currentRule) {
+                        this.triggerRuleSwitchBanner();
+                    }
+                }
+
+                const colors = ["AZUL", "ROJO", "VERDE"];
+                const colorHex = { AZUL: "#38bdf8", ROJO: "#ef4444", VERDE: "#10b981" };
+                const colorValues = { AZUL: 0x38bdf8, ROJO: 0xef4444, VERDE: 0x10b981 };
+                const shapes = ["▲", "■", "★"];
+
+                if (this.currentRule === "COLOR") {
+                    this.targetValue = Phaser.Utils.Array.GetRandom(colors);
+                    this.ruleText.setText(`REGLA: TOCA FIGURAS DE COLOR ${this.targetValue}`);
+                    this.ruleText.setColor(colorHex[this.targetValue]);
+                } else {
+                    this.targetValue = Phaser.Utils.Array.GetRandom(shapes);
+                    this.ruleText.setText(`REGLA: TOCA FIGURAS QUE SEAN ${this.targetValue}`);
+                    this.ruleText.setColor("#f59e0b");
+                }
+
+                for (let i = 0; i < 12; i++) {
+                    const cName = Phaser.Utils.Array.GetRandom(colors);
+                    const sChar = Phaser.Utils.Array.GetRandom(shapes);
+                    const x = Phaser.Math.Between(140, GAME_WIDTH - 140);
+                    const y = Phaser.Math.Between(180, GAME_HEIGHT - 80);
+
+                    const obj = this.add.text(x, y, sChar, {
+                        fontSize: "46px", color: colorHex[cName]
+                    }).setOrigin(0.5).setInteractive();
+                    obj.input.cursor = 'pointer';
+
+                    obj.colorName = cName;
+                    obj.shapeChar = sChar;
+                    obj.colorHex = colorValues[cName];
+                    this.objects.push(obj);
+
+                    obj.on("pointerover", () => {
+                        this.tweens.add({ targets: obj, scale: 1.2, duration: 80 });
+                    });
+
+                    obj.on("pointerout", () => {
+                        this.tweens.add({ targets: obj, scale: 1.0, duration: 80 });
+                    });
+
+                    obj.on("pointerdown", () => {
+                        const isCorrect = (this.currentRule === "COLOR" && obj.colorName === this.targetValue) ||
+                                          (this.currentRule === "SHAPE" && obj.shapeChar === this.targetValue);
+
+                        if (isCorrect) {
+                            soundFX.playSuccess();
+                            this.score += 120;
+                            this.consecutiveHits++;
+                            this.scoreText.setText(`Puntos: ${this.score}`);
+
+                            createBurstFX(this, obj.x, obj.y, obj.colorHex);
+                            createFloatingText(this, obj.x, obj.y, "+120!", "#10b981");
+
+                            this.nextRound();
+                        } else {
+                            soundFX.playError();
+                            this.consecutiveHits = 0;
+                            this.score = Math.max(0, this.score - 60);
+                            this.scoreText.setText(`Puntos: ${this.score}`);
+
+                            createBurstFX(this, obj.x, obj.y, 0xef4444);
+                            createFloatingText(this, obj.x, obj.y, "-60!", "#ef4444");
+                            this.cameras.main.shake(100, 0.006);
+                        }
+                    });
+                }
+            }
+
+            finish() {
+                this.gameOver = true;
+                if (this.timer) this.timer.remove();
+                this.objects.forEach(o => o.destroy());
+
+                if (this.score > scores.cambio) scores.cambio = this.score;
+                saveData();
+
+                this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x03050d, 0.92);
+                this.add.text(GAME_WIDTH / 2, 200, "🔄 MÓDULO FINALIZADO", { fontFamily: "Orbitron", fontSize: "36px", color: "#f59e0b" }).setOrigin(0.5);
+                this.add.text(GAME_WIDTH / 2, 280, `Puntuación Alcanzada: ${this.score} pts`, { fontFamily: "Rajdhani", fontSize: "24px", color: "#ffffff" }).setOrigin(0.5);
+
+                const btnMenu = this.add.text(GAME_WIDTH / 2, 420, "VOLVER AL MENÚ", {
+                    fontFamily: "Orbitron", fontSize: "18px", color: "#38bdf8", backgroundColor: "#0f172a", padding: { left: 20, right: 20, top: 10, bottom: 10 }
+                }).setOrigin(0.5).setInteractive();
+                btnMenu.input.cursor = 'pointer';
+
+                btnMenu.on("pointerdown", () => this.scene.start("MainScene"));
+            }
+        }
+
+        class CaosScene extends Phaser.Scene {
+            constructor() { super("CaosScene"); }
+
+            create() {
+                this.score = 0;
+                this.timeLeft = 35;
+                this.gameOver = false;
+                this.items = [];
+
+                this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x03050d).setOrigin(0);
+                addExitToMenuButton(this);
+
+                this.add.text(GAME_WIDTH / 2, 35, "🌪️ MODO CAOS (ATENCIÓN Y REACCIÓN)", {
+                    fontFamily: "Orbitron", fontSize: "24px", color: "#8b5cf6"
+                }).setOrigin(0.5);
+
+                this.add.text(GAME_WIDTH / 2, 75, "🟢 Núcleos (+100) | 💎 Ciber-Diamantes (+250) | ⏱️ Tiempo (+3s) | 💣 Minas (-150)", {
+                    fontFamily: "Rajdhani", fontSize: "17px", color: "#cbd5e1"
+                }).setOrigin(0.5);
+
+                this.scoreText = this.add.text(35, 40, "Puntos: 0", { fontFamily: "Orbitron", fontSize: "18px", color: "#ffffff" });
+                this.timeText = this.add.text(GAME_WIDTH - 35, 40, "35s", { fontFamily: "Orbitron", fontSize: "18px", color: "#ec4899" }).setOrigin(1, 0);
+
+                this.timer = this.time.addEvent({
+                    delay: 1000,
+                    loop: true,
+                    callback: () => {
+                        if (this.gameOver) return;
+                        this.timeLeft--;
+                        this.timeText.setText(`${this.timeLeft}s`);
+                        if (this.timeLeft <= 0) this.finish();
+                    }
+                });
+
+                this.spawnTimer = this.time.addEvent({
+                    delay: 450,
+                    loop: true,
+                    callback: () => this.spawnChaosItem()
+                });
+            }
+
+            spawnChaosItem() {
+                if (this.gameOver) return;
+
+                const rand = Math.random();
+                let type = "CORE";
+                if (rand < 0.12) type = "TIME";
+                else if (rand < 0.28) type = "DIAMOND";
+                else if (rand < 0.55) type = "MINE";
+
+                const x = Phaser.Math.Between(100, GAME_WIDTH - 100);
+                const y = Phaser.Math.Between(140, GAME_HEIGHT - 80);
+
+                const configMap = {
+                    CORE: { emoji: "🟢", color: 0x10b981, pts: 100 },
+                    DIAMOND: { emoji: "💎", color: 0x38bdf8, pts: 250 },
+                    TIME: { emoji: "⏱️", color: 0xf59e0b, pts: 50 },
+                    MINE: { emoji: "💣", color: 0xef4444, pts: -150 }
+                };
+
+                const itemData = configMap[type];
+
+                const circle = this.add.circle(x, y, 28, itemData.color, 0.9);
+                circle.setStrokeStyle(2, 0xffffff);
+                const label = this.add.text(x, y, itemData.emoji, { fontSize: "22px" }).setOrigin(0.5);
+
+                circle.setInteractive();
+                circle.input.cursor = 'pointer';
+
+                const tween = this.tweens.add({
+                    targets: [circle, label],
+                    scale: { from: 1, to: 0 },
+                    duration: 1900,
+                    onComplete: () => {
+                        circle.destroy();
+                        label.destroy();
+                    }
+                });
+
+                circle.on("pointerdown", () => {
+                    if (this.gameOver) return;
+                    tween.stop();
+                    circle.destroy();
+                    label.destroy();
+
+                    if (type === "MINE") {
+                        soundFX.playError();
+                        this.score = Math.max(0, this.score + itemData.pts);
+                        createBurstFX(this, x, y, 0xef4444);
+                        createFloatingText(this, x, y, "-150 ¡MINA!", "#ef4444");
+                        this.cameras.main.shake(120, 0.008);
+                    } else if (type === "TIME") {
+                        soundFX.playSuccess();
+                        this.timeLeft += 3;
+                        this.score += itemData.pts;
+                        this.timeText.setText(`${this.timeLeft}s`);
+                        createBurstFX(this, x, y, 0xf59e0b);
+                        createFloatingText(this, x, y, "+3s TIEMPO!", "#f59e0b");
+                    } else {
+                        soundFX.playSuccess();
+                        this.score += itemData.pts;
+                        createBurstFX(this, x, y, itemData.color);
+                        createFloatingText(this, x, y, `+${itemData.pts}!`, "#10b981");
+                    }
+
+                    this.scoreText.setText(`Puntos: ${this.score}`);
+                });
+            }
+
+            finish() {
+                this.gameOver = true;
+                if (this.timer) this.timer.remove();
+                if (this.spawnTimer) this.spawnTimer.remove();
+
+                if (this.score > scores.caos) scores.caos = this.score;
+                saveData();
+
+                this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x03050d, 0.92);
+                this.add.text(GAME_WIDTH / 2, 200, "🌪️ MÓDULO FINALIZADO", { fontFamily: "Orbitron", fontSize: "36px", color: "#8b5cf6" }).setOrigin(0.5);
+                this.add.text(GAME_WIDTH / 2, 280, `Puntuación Alcanzada: ${this.score} pts`, { fontFamily: "Rajdhani", fontSize: "24px", color: "#ffffff" }).setOrigin(0.5);
+
+                const btnMenu = this.add.text(GAME_WIDTH / 2, 420, "VOLVER AL MENÚ", {
+                    fontFamily: "Orbitron", fontSize: "18px", color: "#38bdf8", backgroundColor: "#0f172a", padding: { left: 20, right: 20, top: 10, bottom: 10 }
+                }).setOrigin(0.5).setInteractive();
+                btnMenu.input.cursor = 'pointer';
+
+                btnMenu.on("pointerdown", () => this.scene.start("MainScene"));
+            }
+        }
+
+        class MegaScene extends Phaser.Scene {
+            constructor() { super("MegaScene"); }
+
+            create() {
+                this.score = 0;
+                this.timeLeft = 50;
+                this.gameOver = false;
+                this.phase = 1;
+
+                this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x03050d).setOrigin(0);
+                addExitToMenuButton(this);
+
+                this.titleText = this.add.text(GAME_WIDTH / 2, 35, "💥 MEGA DESAFÍO COGNITIVO (FASE 1)", {
+                    fontFamily: "Orbitron", fontSize: "24px", color: "#ec4899"
+                }).setOrigin(0.5);
+
+                this.scoreText = this.add.text(35, 40, "Puntos: 0", { fontFamily: "Orbitron", fontSize: "18px", color: "#ffffff" });
+                this.timeText = this.add.text(GAME_WIDTH - 35, 40, "50s", { fontFamily: "Orbitron", fontSize: "18px", color: "#ec4899" }).setOrigin(1, 0);
+
+                this.timer = this.time.addEvent({
+                    delay: 1000,
+                    loop: true,
+                    callback: () => {
+                        if (this.gameOver) return;
+                        this.timeLeft--;
+                        this.timeText.setText(`${this.timeLeft}s`);
+                        if (this.timeLeft <= 0) this.finish();
+                    }
+                });
+
+                this.spawnMegaTarget();
+            }
+
+            spawnMegaTarget() {
+                if (this.gameOver) return;
+
+                const x = Phaser.Math.Between(150, GAME_WIDTH - 150);
+                const y = Phaser.Math.Between(180, GAME_HEIGHT - 100);
+
+                const isHazard = Math.random() < 0.25;
+                const obj = this.add.text(x, y, isHazard ? "💣" : "💥", { fontSize: "52px" }).setOrigin(0.5).setInteractive();
+                obj.input.cursor = 'pointer';
+
+                this.tweens.add({
+                    targets: obj,
+                    scale: 1.25,
+                    duration: 350,
+                    yoyo: true,
+                    repeat: -1
+                });
+
+                obj.on("pointerdown", () => {
+                    if (isHazard) {
+                        soundFX.playError();
+                        this.score = Math.max(0, this.score - 120);
+                        createBurstFX(this, x, y, 0xef4444);
+                        createFloatingText(this, x, y, "-120 TRAMPA!", "#ef4444");
+                        this.cameras.main.shake(120, 0.008);
+                    } else {
+                        soundFX.playSuccess();
+                        this.score += 200;
+                        createBurstFX(this, x, y, 0xec4899);
+                        createFloatingText(this, x, y, "+200 MEGA!", "#ec4899");
+
+                        if (this.score >= 1200 && this.phase === 1) {
+                            this.phase = 2;
+                            this.titleText.setText("💥 MEGA DESAFÍO COGNITIVO (FASE 2)");
+                            soundFX.playRuleSwitch();
+                        }
+                    }
+
+                    this.scoreText.setText(`Puntos: ${this.score}`);
+                    obj.destroy();
+                    this.time.delayedCall(300, () => this.spawnMegaTarget());
+                });
+            }
+
+            finish() {
+                this.gameOver = true;
+                if (this.timer) this.timer.remove();
+
+                if (this.score > scores.mega) scores.mega = this.score;
+                saveData();
+
+                this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x03050d, 0.92);
+                this.add.text(GAME_WIDTH / 2, 200, "💥 MEGA DESAFÍO COMPLETADO", { fontFamily: "Orbitron", fontSize: "36px", color: "#ec4899" }).setOrigin(0.5);
+                this.add.text(GAME_WIDTH / 2, 280, `Puntuación Máxima: ${this.score} pts`, { fontFamily: "Rajdhani", fontSize: "24px", color: "#ffffff" }).setOrigin(0.5);
+
+                const btnMenu = this.add.text(GAME_WIDTH / 2, 420, "VOLVER AL MENÚ", {
+                    fontFamily: "Orbitron", fontSize: "18px", color: "#38bdf8", backgroundColor: "#0f172a", padding: { left: 20, right: 20, top: 10, bottom: 10 }
+                }).setOrigin(0.5).setInteractive();
+                btnMenu.input.cursor = 'pointer';
+
+                btnMenu.on("pointerdown", () => this.scene.start("MainScene"));
+            }
+        }
+
+        const config = {
+            type: Phaser.AUTO,
+            width: GAME_WIDTH,
+            height: GAME_HEIGHT,
+            parent: "game",
+            backgroundColor: "#03050d",
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH
+            },
+            scene: [
+                MainScene,
+                CazadorScene,
+                NoToquesScene,
+                MemoriaScene,
+                CambioScene,
+                CaosScene,
+                MegaScene
+            ]
+        };
+
+        window.onload = function() {
+            new Phaser.Game(config);
+        };
+    </script>
+
+</body>
+
+</html>
